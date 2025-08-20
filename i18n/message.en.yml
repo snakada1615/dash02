@@ -1,0 +1,5 @@
+en:
+  hello: Hello
+  hello_name: "Hello %{name}"
+  project_title: "Scatter plot and table for stunted children under 5"
+  project_description: "Project description"

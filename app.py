@@ -6,11 +6,26 @@ import plotly.express as px
 import pandas as pd
 import statsmodels.api as sm
 import dash_bootstrap_components as dbc 
+import i18n
 import numpy as np
 
 external_stylesheets = [
     dbc.themes.BOOTSTRAP  # 公式テーマ（テーマを変えたければここを変更）
 ]
+
+# -------------------------------------------------------------------
+# 辞書ファイルのパスを追加（i18nフォルダ）
+i18n.load_path.append('./i18n')
+
+# 初期表示言語の指定（例：日本語）
+i18n.set('locale', 'ja')
+
+# 翻訳キーを通して文言を取得
+print(i18n.t('message.hello'))                   # こんにちは
+print(i18n.t('message.hello', locale='en'))      # Hello
+print(i18n.t('message.hello_name', name='Taro')) # こんにちは Taro
+print(i18n.t('message.hello_name', locale='en', name='John')) # Hello John
+# -------------------------------------------------------------------
 
 # 実行中ファイルのディレクトリを取得
 base_dir = os.path.dirname(__file__)
@@ -36,7 +51,7 @@ server = app.server
 
 app.layout = dbc.Container([
     dbc.Row([
-        dbc.Col(html.H2("「5歳未満児の成長阻害」と各種要因の散布図／テーブル"), width=12)
+        dbc.Col(html.H2(i18n.t('message.project_title')), width=12)
     ], className="mb-4 mt-4"),
     dbc.Row([
         dbc.Col([

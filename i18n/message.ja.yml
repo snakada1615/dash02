@@ -1,0 +1,5 @@
+ja:
+  hello: こんにちは
+  hello_name: "こんにちは %{name}"
+  project_title: "「5歳未満児の成長阻害」と各種要因の散布図／テーブル"
+  project_description: "プロジェクトの説明"
