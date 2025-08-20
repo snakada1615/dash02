@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# 仮想環境
+.venv/
+env/
+venv/
+
+# IDE/エディタ
+.vscode/
+.idea/
+
+# OSファイル
+.DS_Store
+
+# ログ・一時ファイル
+*.log
+*.tmp
+
+# テスト出力
+htmlcov/
+.coverage
+.cache
+.pytest_cache/
+
+# パッケージ管理
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# その他
+*.sqlite3
+~$*.xlsx

@@ -5,7 +5,12 @@ from dash.dependencies import Input, Output
 import plotly.express as px
 import pandas as pd
 import statsmodels.api as sm
+import dash_bootstrap_components as dbc 
 import numpy as np
+
+external_stylesheets = [
+    dbc.themes.BOOTSTRAP  # 公式テーマ（テーマを変えたければここを変更）
+]
 
 # 実行中ファイルのディレクトリを取得
 base_dir = os.path.dirname(__file__)
@@ -26,29 +31,38 @@ select_options = [
 varname_to_label = dict(zip(df_labels['var_name'], df_labels['var_label']))
 
 # Dashアプリを作成
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 
-app.layout = html.Div([
-    html.H2("「5歳未満児の成長阻害」と各種要因の散布図／テーブル"),
-    dcc.RadioItems(
-        id='view-type',
-        options=[
-            {'label': '散布図', 'value': 'scatter'},
-            {'label': 'テーブル', 'value': 'table'}
-        ],
-        value='scatter',
-        labelStyle={'display': 'inline-block', 'margin-right': '20px'}
-    ),
-    dcc.Dropdown(
-        id='x-col',
-        options=select_options,
-        value='DHS01',
-        clearable=False
-    ),
-    html.Div(id='output-area', style={'margin-top': '30px'})
-])
-
+app.layout = dbc.Container([
+    dbc.Row([
+        dbc.Col(html.H2("「5歳未満児の成長阻害」と各種要因の散布図／テーブル"), width=12)
+    ], className="mb-4 mt-4"),
+    dbc.Row([
+        dbc.Col([
+            dbc.Label("表示タイプ"),
+            dbc.RadioItems(
+                id='view-type',
+                options=[
+                    {'label': '散布図', 'value': 'scatter'},
+                    {'label': 'テーブル', 'value': 'table'}
+                ],
+                value='scatter',
+                inline=True,
+            ),
+            dbc.Label("横軸変数", className="mt-3"),
+            dcc.Dropdown(
+                id='x-col',
+                options=select_options,
+                value=select_options[0]['value'],
+                clearable=False,
+            )
+        ], md=4),
+    ]),
+    dbc.Row([
+        dbc.Col(html.Div(id='output-area'), width=12)
+    ], className="mt-4")
+], fluid=True)
 
 @app.callback(
     Output('output-area', 'children'),
@@ -112,4 +126,4 @@ def update_output(x_col, view_type):
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(debug=True)
