@@ -57,7 +57,7 @@ app.layout = dbc.Container([
                 value=select_options[0]['value'],
                 clearable=False,
             )
-        ], md=4),
+        ], md=8),
     ]),
     dbc.Row([
         dbc.Col(html.Div(id='output-area'), width=12)
@@ -68,31 +68,47 @@ app.layout = dbc.Container([
     Output('output-area', 'children'),
     [Input('x-col', 'value'), Input('view-type', 'value')]
 )
+# 固定効果を加えた相関・回帰分析
 def update_output(x_col, view_type):
     y_col = 'DHS04'
     x_label = varname_to_label.get(x_col, x_col) + ' (%)'
     y_label = 'stunted children under 5 (%)'
 
-    # NaNやinfを除いたデータを用意
-    data = df_dhs[[x_col, y_col]].replace([np.inf, -np.inf], np.nan).dropna()
+    # country, Yearはdf_dhsの列名に合わせてください
+    fe_cols = ['Country_code', 'Year']
+
+    # 必要な列のみ
+    needed_cols = [x_col, y_col] + fe_cols
+    data = df_dhs[needed_cols].replace([np.inf, -np.inf], np.nan).dropna()
 
     if view_type == 'scatter':
-        # 相関係数の計算
-        r = data.corr(method='pearson').iloc[0, 1]
-        # 線形回帰
-        X = sm.add_constant(data[x_col])
-        model = sm.OLS(data[y_col], X).fit()
-        r2 = model.rsquared
-        # 小数点2桁で丸める
+        # 基本モデル：y ~ C(Country_code) + C(Year)
+        base_formula = f"{y_col} ~ C(Country_code) + C(Year)"
+        base_model = sm.OLS.from_formula(base_formula, data=data).fit()
+        r2_base = base_model.rsquared
+
+        # 選択変数追加モデル：y ~ x_col + C(Country_code) + C(Year)
+        full_formula = f"{y_col} ~ {x_col} + C(Country_code) + C(Year)"
+        full_model = sm.OLS.from_formula(full_formula, data=data).fit()
+        r2_full = full_model.rsquared
+
+        # 寄与R²：選択変数の説明力
+        r2_contrib = np.round(r2_full - r2_base, 3)
+
+        # 残差相関係数（xとyから固定効果を差し引いた部分の相関）
+        # 1. x, yそれぞれ国・年固定効果付き回帰の残差を得る
+        x_resid = sm.OLS.from_formula(f"{x_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
+        y_resid = sm.OLS.from_formula(f"{y_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
+        r = np.corrcoef(x_resid, y_resid)[0, 1]
         r_disp = np.round(r, 2)
-        r2_disp = np.round(r2, 2)
-        annotation_text = f"相関係数 r = {r_disp}, R² = {r2_disp}"
+
+        annotation_text = f"固定効果付き相関 r = {r_disp}, R² = {r2_contrib}"
 
         fig = px.scatter(
-            df_dhs, x=x_col, y=y_col,
-            labels={x_col: x_label, 'DHS04': y_label},
-            title=f"{x_label}と{y_label}の相関図",
-            trendline="ols"
+            data, x=x_col, y=y_col,
+            labels={x_col: x_label, y_col: y_label},
+            title=f"{x_label}と{y_label}の散布図（国・年固定効果付き）",
+            trendline="ols",
         )
         fig.update_layout(width=600, height=800)
         fig.add_annotation(
@@ -122,7 +138,6 @@ def update_output(x_col, view_type):
             style_table={'overflowX': 'auto'}
         )
         return table
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
