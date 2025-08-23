@@ -82,34 +82,72 @@ def update_output(x_col, view_type):
     data = df_dhs[needed_cols].replace([np.inf, -np.inf], np.nan).dropna()
 
     if view_type == 'scatter':
-        # 基本モデル：y ~ C(Country_code) + C(Year)
+        # 0. 基本モデル：y ~ C(Country_code) + C(Year)
         base_formula = f"{y_col} ~ C(Country_code) + C(Year)"
         base_model = sm.OLS.from_formula(base_formula, data=data).fit()
         r2_base = base_model.rsquared
+        
+        # 1. 固定効果付き回帰モデル
+        formula = f"{y_col} ~ {x_col} + C(Country_code) + C(Year)"
+        model = sm.OLS.from_formula(formula, data=data).fit()
+        coef = model.params[x_col]          # x_colの推定傾き
+        r2_full = model.rsquared         # 固定効果＋x_colの説明力
+        # x_colのみに由来する増分R2は（前述）で計算可能
 
-        # 選択変数追加モデル：y ~ x_col + C(Country_code) + C(Year)
-        full_formula = f"{y_col} ~ {x_col} + C(Country_code) + C(Year)"
-        full_model = sm.OLS.from_formula(full_formula, data=data).fit()
-        r2_full = full_model.rsquared
-
-        # 寄与R²：選択変数の説明力
+        # 2. 寄与R²：選択変数の説明力
         r2_contrib = np.round(r2_full - r2_base, 3)
-
-        # 残差相関係数（xとyから固定効果を差し引いた部分の相関）
-        # 1. x, yそれぞれ国・年固定効果付き回帰の残差を得る
+        
+        # 3. 傾きと同じ基準で残差相関を計算
+        # y, xとも固定効果を引いた残差
         x_resid = sm.OLS.from_formula(f"{x_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
         y_resid = sm.OLS.from_formula(f"{y_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
         r = np.corrcoef(x_resid, y_resid)[0, 1]
-        r_disp = np.round(r, 2)
+        # ただし、このrと上のcoef（傾き）は直感通り一致しないこともある
 
-        annotation_text = f"固定効果付き相関 r = {r_disp}, R² = {r2_contrib}"
-
+        # 3. 視覚化に固定効果付き予測値を重ねる（推奨）
+        data = data.assign(pred=model.fittedvalues)
         fig = px.scatter(
-            data, x=x_col, y=y_col,
+            data,
+            x=x_col,
+            y=y_col,
             labels={x_col: x_label, y_col: y_label},
-            title=f"{x_label}と{y_label}の散布図（国・年固定効果付き）",
-            trendline="ols",
+            title=f"{x_label}と{y_label}の散布図（国・年固定効果付き）"
         )
+        annotation_text = f"傾き: {coef:.3f}, 固定効果付き相関 r = {r:.2f}, R² = {r2_contrib:.3f}"
+        fig.add_traces(
+            px.line(data, x=x_col, y='pred').data
+        )
+        # 傾きcoef, 相関r, R2など注記して透明性を高める
+        
+        
+        # # 基本モデル：y ~ C(Country_code) + C(Year)
+        # base_formula = f"{y_col} ~ C(Country_code) + C(Year)"
+        # base_model = sm.OLS.from_formula(base_formula, data=data).fit()
+        # r2_base = base_model.rsquared
+
+        # # 選択変数追加モデル：y ~ x_col + C(Country_code) + C(Year)
+        # full_formula = f"{y_col} ~ {x_col} + C(Country_code) + C(Year)"
+        # full_model = sm.OLS.from_formula(full_formula, data=data).fit()
+        # r2_full = full_model.rsquared
+
+        # # 寄与R²：選択変数の説明力
+        # r2_contrib = np.round(r2_full - r2_base, 3)
+
+        # # 残差相関係数（xとyから固定効果を差し引いた部分の相関）
+        # # 1. x, yそれぞれ国・年固定効果付き回帰の残差を得る
+        # x_resid = sm.OLS.from_formula(f"{x_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
+        # y_resid = sm.OLS.from_formula(f"{y_col} ~ C(Country_code) + C(Year)", data=data).fit().resid
+        # r = np.corrcoef(x_resid, y_resid)[0, 1]
+        # r_disp = np.round(r, 2)
+
+        # annotation_text = f"固定効果付き相関 r = {r_disp}, R² = {r2_contrib}"
+
+        # fig = px.scatter(
+        #     data, x=x_col, y=y_col,
+        #     labels={x_col: x_label, y_col: y_label},
+        #     title=f"{x_label}と{y_label}の散布図（国・年固定効果付き）",
+        #     trendline="ols",
+        # )
         fig.update_layout(width=600, height=800)
         fig.add_annotation(
             text=annotation_text,
