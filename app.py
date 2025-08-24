@@ -26,9 +26,12 @@ df_dhs = pd.read_excel(file_path, sheet_name='dat_all', engine='openpyxl')
 select_options = [
     {'label': row['var_label'], 'value': row['var_name']}
     for idx, row in df_labels.iterrows()
-    if row['var_name'] != 'DHS04'
+    if (row['var_name'] != 'DHS04')
+       and (row['var_name'] != 'FAO_22013')
+       and (row['var_name'] in df_dhs.columns)
 ]
 varname_to_label = dict(zip(df_labels['var_name'], df_labels['var_label']))
+# print(select_options)
 
 # Dashアプリを作成
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -94,6 +97,14 @@ def update_output(x_col, view_type):
 
         # 寄与R²：選択変数の説明力
         r2_contrib = np.round(r2_full - r2_base, 3)
+        
+        # 固定効果なしモデル
+        naive_formula_no_fe = f"{y_col} ~ {x_col}"
+        naive_model_no_fe = sm.OLS.from_formula(naive_formula_no_fe, data=data).fit()
+        r2_naive = naive_model_no_fe.rsquared
+        r2_naive = np.round(r2_naive, 3)
+        r_naive_dis = np.corrcoef(data[x_col], data[y_col])[0, 1]
+        r_naive_dis = np.round(r_naive_dis, 2)
 
         # 残差相関係数（xとyから固定効果を差し引いた部分の相関）
         # 1. x, yそれぞれ国・年固定効果付き回帰の残差を得る
@@ -102,7 +113,8 @@ def update_output(x_col, view_type):
         r = np.corrcoef(x_resid, y_resid)[0, 1]
         r_disp = np.round(r, 2)
 
-        annotation_text = f"固定効果付き相関 r = {r_disp}, R² = {r2_contrib}"
+        annotation_text = f"固定効果付き相関 r = {r_disp}, R² = {r2_contrib}<br>"
+        annotation_text += f"固定効果なし相関 r = {r_naive_dis}, R² = {r2_naive}"
 
         fig = px.scatter(
             data, x=x_col, y=y_col,
