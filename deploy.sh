@@ -9,8 +9,8 @@ TAG="ver1.01"
 if [ "$MODE" = "local" ]; then
   echo "===== ローカル実行モード ====="
 
-  # Docker build (ローカル)
-  docker build --platform=linux/amd64 -t ${IMAGE_NAME}:${TAG} .
+  # Docker build (Apple Silicon/Mac用)
+  docker build --platform=linux/arm64 -t ${IMAGE_NAME}:${TAG} .
 
   # ローカルでコンテナRun
   docker run -it --rm -p 8080:8080 ${IMAGE_NAME}:${TAG}
