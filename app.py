@@ -35,6 +35,7 @@ varname_to_label = dict(zip(df_labels['var_name'], df_labels['var_label']))
 
 # Dashアプリを作成
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.title = "stunting and key factors"  # ブラウザのタブなどに表示される
 server = app.server
 
 app.layout = dbc.Container([
